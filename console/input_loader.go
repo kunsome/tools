@@ -5,22 +5,20 @@ import (
 	"reflect"
 )
 
-func LoadParam(param interface{}) {
+// LoadParam 加载命令输入
+func LoadParam(param interface{}, youFuc ...func(paramType reflect.Type, paramValue reflect.Value, i int)) {
+	var f func(paramType reflect.Type, paramValue reflect.Value, i int)
+	if len(youFuc) > 0 {
+		f = youFuc[0]
+	} else {
+		f = BaseInterpreter
+	}
+
 	for {
 		paramType := reflect.TypeOf(param)
 		paramValue := reflect.ValueOf(param)
 		for i := 0; i < paramType.Elem().NumField(); i++ {
-			fieldNameCn := paramType.Elem().Field(i).Tag.Get("json")
-			InputType := paramType.Elem().Field(i).Tag.Get("inputType")
-			fileType := paramType.Elem().Field(i).Type.Name()
-
-			if InputType == "dir" {
-				paramValue.Elem().Field(i).Set(reflect.ValueOf(GetInputDir("请输入" + fieldNameCn + ":")))
-			} else if fileType == "int" {
-				paramValue.Elem().Field(i).Set(reflect.ValueOf(GetInputInt("请输入" + fieldNameCn + "：")))
-			} else {
-				paramValue.Elem().Field(i).Set(reflect.ValueOf(GetInput("请输入" + fieldNameCn + "：")))
-			}
+			f(paramType, paramValue, i)
 		}
 
 		print("\n将以下列参数执行：")
@@ -32,8 +30,18 @@ func LoadParam(param interface{}) {
 	}
 }
 
-func BaseInterpreter() {
+func BaseInterpreter(paramType reflect.Type, paramValue reflect.Value, i int) {
+	fieldNameCn := paramType.Elem().Field(i).Tag.Get("json")
+	InputType := paramType.Elem().Field(i).Tag.Get("inputType")
+	fileType := paramType.Elem().Field(i).Type.Name()
 
+	if InputType == "dir" {
+		paramValue.Elem().Field(i).Set(reflect.ValueOf(GetInputDir("请输入" + fieldNameCn + ":")))
+	} else if fileType == "int" {
+		paramValue.Elem().Field(i).Set(reflect.ValueOf(GetInputInt("请输入" + fieldNameCn + "：")))
+	} else {
+		paramValue.Elem().Field(i).Set(reflect.ValueOf(GetInput("请输入" + fieldNameCn + "：")))
+	}
 }
 
 // CircleHelper 循环询问是否退出当前函数,防止点击的执行的命令行程序直接退出，看不到返回结果
